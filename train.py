@@ -128,6 +128,12 @@ def main():
 
             # Update G
             if compute_g_loss:
+                # Re-run forward pass to get fresh predictions with updated discriminator (Added by MARIANA)
+                losses, _, _ = trainer(x, bboxes, mask, ground_truth, compute_g_loss)
+
+                for k in losses.keys():
+                    if not losses[k].dim() == 0:
+                        losses[k] = torch.mean(losses[k])
                 trainer_module.optimizer_g.zero_grad()
                 losses['g'] = losses['l1'] * config['l1_loss_alpha'] \
                               + losses['ae'] * config['ae_loss_alpha'] \

@@ -5,17 +5,33 @@ import numpy as np
 from PIL import Image
 
 import torch.nn.functional as F
+from torchvision import transforms
 
 
-def pil_loader(path):
+def load_rgb(path):
     # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
+        img = Image.open(f).convert('RGB')
+    tensor = transforms.ToTensor()(img)  # [3, H, W], scaled [0,1]
+    return tensor * 2. - 1.  # normalize to [-1, 1]
 
 
-def default_loader(path):
-    return pil_loader(path)
+def load_16bit_grayscale(path, normalize=True):
+    img = Image.open(path)
+    if img.mode not in ['I;16', 'I']:
+        raise ValueError(f"[load_16bit_grayscale] Expected 16-bit grayscale image, got mode: {img.mode}")
+    np_img = np.array(img, dtype=np.uint16).astype(np.float32) / 65535.0
+    tensor = torch.from_numpy(np_img).unsqueeze(0)  # shape [1, H, W]
+    if normalize:
+        tensor = tensor * 2. - 1.
+    return tensor
+
+
+def default_loader(path, input_dim=3):
+    if input_dim == 1:
+        return load_16bit_grayscale(path)
+    else:
+        return load_rgb(path)
 
 
 def tensor_img_to_npimg(tensor_img):
@@ -36,6 +52,9 @@ def tensor_img_to_npimg(tensor_img):
 def normalize(x):
     return x.mul_(2).add_(-1)
 
+def to_rgb(tensor):
+    return tensor if tensor.size(1) == 3 else tensor.repeat(1, 3, 1, 1)
+    
 def same_padding(images, ksizes, strides, rates):
     assert len(images.size()) == 4
     batch_size, channel, rows, cols = images.size()
@@ -160,6 +179,10 @@ def mask_image(x, bboxes, config):
     mask = bbox2mask(bboxes, height, width, max_delta_h, max_delta_w)
     if x.is_cuda:
         mask = mask.cuda()
+
+    # Expand mask to match x's channel count  # Added byMARIANA
+    if mask.size(1) != x.size(1):
+        mask = mask.expand(-1, x.size(1), -1, -1)
 
     if config['mask_type'] == 'hole':
         result = x * (1. - mask)

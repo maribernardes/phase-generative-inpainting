@@ -132,6 +132,7 @@ class Trainer(nn.Module):
         torch.save({'gen': self.optimizer_g.state_dict(),
                     'dis': self.optimizer_d.state_dict()}, opt_name)
 
+
     def resume(self, checkpoint_dir, iteration=0, test=False):
         # Load generators
         last_model_name = get_model_list(checkpoint_dir, "gen", iteration=iteration)

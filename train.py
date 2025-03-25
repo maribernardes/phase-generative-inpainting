@@ -12,7 +12,7 @@ from tensorboardX import SummaryWriter
 
 from trainer import Trainer
 from data.dataset import Dataset
-from utils.tools import get_config, random_bbox, mask_image
+from utils.tools import get_config, random_bbox, mask_image, to_rgb
 from utils.logger import get_logger
 
 parser = ArgumentParser()
@@ -160,15 +160,19 @@ def main():
             if iteration % (config['viz_iter']) == 0:
                 viz_max_out = config['viz_max_out']
                 if x.size(0) > viz_max_out:
-                    viz_images = torch.stack([x[:viz_max_out], inpainted_result[:viz_max_out],
-                                              offset_flow[:viz_max_out]], dim=1)
+                    viz_images = torch.stack([to_rgb(x[:viz_max_out]), to_rgb(inpainted_result[:viz_max_out]),
+                                              to_rgb(offset_flow[:viz_max_out])], dim=1)
                 else:
-                    viz_images = torch.stack([x, inpainted_result, offset_flow], dim=1)
-                viz_images = viz_images.view(-1, *list(x.size())[1:])
+                    viz_images = torch.stack([to_rgb(x), to_rgb(inpainted_result), to_rgb(offset_flow)], dim=1)
+                C = viz_images.size(2)  # should be 3 after to_rgb()
+                viz_images = viz_images.view(-1, C, *viz_images.shape[-2:])
+
+                # Rescale manually
+                viz_images = (viz_images + 1) / 2.0  # convert from [-1, 1] → [0, 1]
                 vutils.save_image(viz_images,
                                   '%s/niter_%03d.png' % (checkpoint_path, iteration),
                                   nrow=3 * 4,
-                                  normalize=True)
+                                  normalize=False)
 
             # Save the model
             if iteration % config['snapshot_save_iter'] == 0:

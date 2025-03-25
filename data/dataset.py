@@ -6,7 +6,6 @@ import os
 
 import torchvision.transforms as transforms
 
-
 class Dataset(data.Dataset):
     def __init__(self, data_path, image_shape, with_subfolder=False, random_crop=True, return_name=False):
         super(Dataset, self).__init__()
@@ -16,15 +15,19 @@ class Dataset(data.Dataset):
             self.samples = [x for x in listdir(data_path) if is_image_file(x)]
         self.data_path = data_path
         self.image_shape = image_shape[:-1]
+        self.input_dim = image_shape[-1]        # 1 = grayscale, 3 = RGB # MARIANA
         self.random_crop = random_crop
         self.return_name = return_name
 
+        # Setup base transforms
+        self.to_tensor = transforms.ToTensor()
+
     def __getitem__(self, index):
         path = os.path.join(self.data_path, self.samples[index])
-        img = default_loader(path)
+        img = default_loader(path, input_dim=self.input_dim)
 
         if self.random_crop:
-            imgw, imgh = img.size
+            _, imgw, imgh = img.shape
             if imgh < self.image_shape[0] or imgw < self.image_shape[1]:
                 img = transforms.Resize(min(self.image_shape))(img)
             img = transforms.RandomCrop(self.image_shape)(img)
@@ -32,8 +35,10 @@ class Dataset(data.Dataset):
             img = transforms.Resize(self.image_shape)(img)
             img = transforms.RandomCrop(self.image_shape)(img)
 
-        img = transforms.ToTensor()(img)  # turn the image to a tensor
-        img = normalize(img)
+        # Only for RBG
+        if self.input_dim == 3:
+            img = self.to_tensor(img)
+            img = normalize(img)
 
         if self.return_name:
             return self.samples[index], img

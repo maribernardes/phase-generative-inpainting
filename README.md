@@ -11,7 +11,7 @@ This code has been tested on Ubuntu 14.04 and the following are the main compone
 
 ## Train the model
 ```bash
-python train.py --config configs/config.yaml
+python3 train.py --config configs/config_unwrap.yaml
 ```
 
 The checkpoints and logs will be saved to `checkpoints`。
@@ -22,12 +22,12 @@ By default, it will load the latest saved model in the checkpoints. You can also
 Trained PyTorch model: [[Google Drive](https://drive.google.com/open?id=1qbfA5BP9yzdTFFmiOTvYARUYgW1zwBBK)] [[Baidu Wangpan](https://pan.baidu.com/s/17HzpiqMPLIznvCWBfpNVGw)]
 
 ```bash
-python test_single.py \
-	--image examples/imagenet/imagenet_patches_ILSVRC2012_val_00008210_input.png \
-	--mask examples/center_mask_256.png \
-	--output examples/output.png
+python3 test_single.py \
+	--config configs/config_unwrap.yaml\
+	--image examples/LiverMWA/unwrapped_MWALiver_2D_P_063_53s16.png\
+	--output examples/output_unwrap.png
 ```
-
+	--mask examples/center_mask_192.png \
 ## Test with the converted TF model:
 Converted TF model: [[Google Drive](https://drive.google.com/file/d/1vz2Qp12_iwOiuvLWspLHrC1UIuhSLojx/view?usp=sharing)]
 

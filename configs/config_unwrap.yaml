@@ -1,14 +1,14 @@
 # data parameters
 dataset_name: MWALiver
 data_with_subfolder: False
-train_data_path: /home/mrthermometry/Datasets/MWALiver/phase_2D
+train_data_path: /home/mrthermometry/Datasets/MWALiver/unwrapped_phase_2D
 val_data_path:
 resume:
-batch_size: 16
+batch_size: 32
 image_shape: [192, 192, 1]
 mask_shape: [50, 50]
 mask_batch_same: True
-max_delta_shape: [25, 25]
+max_delta_shape: [20, 20]
 margin: [0, 0]
 discounted_mask: True
 spatial_discounting_gamma: 0.9
@@ -17,7 +17,7 @@ mask_type: hole     # hole | mosaic
 mosaic_unit_size: 12
 
 # training parameters
-expname: test
+expname: benchmark_unwrapped
 cuda: True
 gpu_ids: [0]    # set the GPU ids to use, e.g. [0] or [1, 2]
 num_workers: 4
@@ -25,11 +25,11 @@ lr: 0.0001
 beta1: 0.5
 beta2: 0.9
 n_critic: 5
-niter: 500    # 500000
-print_iter: 10
-viz_iter: 100
+niter: 500000
+print_iter: 100
+viz_iter: 1000
 viz_max_out: 16
-snapshot_save_iter: 50
+snapshot_save_iter: 5000
 
 # loss weight
 coarse_l1_alpha: 1.2

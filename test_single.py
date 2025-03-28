@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
 from model.networks import Generator
-from utils.tools import get_config, random_bbox, mask_image, is_image_file, default_loader, normalize, get_model_list
+from utils.tools import get_config, random_bbox, mask_image, is_image_file, default_loader, normalize, get_model_list, save_16bit_png
 
 
 parser = ArgumentParser()
@@ -54,15 +54,17 @@ def main():
             if is_image_file(args.image):
                 if args.mask and is_image_file(args.mask):
                     # Test a single masked image with a given mask
-                    x = default_loader(args.image)
-                    mask = default_loader(args.mask)
+                    x = default_loader(args.image, input_dim=config['image_shape'][-1])
+                    mask = default_loader(args.mask, input_dim=config['image_shape'][-1])
                     x = transforms.Resize(config['image_shape'][:-1])(x)
                     x = transforms.CenterCrop(config['image_shape'][:-1])(x)
                     mask = transforms.Resize(config['image_shape'][:-1])(mask)
                     mask = transforms.CenterCrop(config['image_shape'][:-1])(mask)
-                    x = transforms.ToTensor()(x)
-                    mask = transforms.ToTensor()(mask)[0].unsqueeze(dim=0)
-                    x = normalize(x)
+                    if config['image_shape'][-1] == 3: # If RGB
+                        x = transforms.ToTensor()(x)
+                        x = normalize(x)
+                        mask = transforms.ToTensor()(mask)
+                    mask = mask[0].unsqueeze(dim=0)
                     x = x * (1. - mask)
                     x = x.unsqueeze(dim=0)
                     mask = mask.unsqueeze(dim=0)
@@ -70,11 +72,12 @@ def main():
                     raise TypeError("{} is not an image file.".format(args.mask))
                 else:
                     # Test a single ground-truth image with a random mask
-                    ground_truth = default_loader(args.image)
+                    ground_truth = default_loader(args.image, input_dim=config['image_shape'][-1])
                     ground_truth = transforms.Resize(config['image_shape'][:-1])(ground_truth)
                     ground_truth = transforms.CenterCrop(config['image_shape'][:-1])(ground_truth)
-                    ground_truth = transforms.ToTensor()(ground_truth)
-                    ground_truth = normalize(ground_truth)
+                    if config['image_shape'][-1] == 3:  # If RGB
+                        ground_truth = transforms.ToTensor()(ground_truth)
+                        ground_truth = normalize(ground_truth)
                     ground_truth = ground_truth.unsqueeze(dim=0)
                     bboxes = random_bbox(config, batch_size=ground_truth.size(0))
                     x, mask = mask_image(ground_truth, bboxes, config)
@@ -104,10 +107,16 @@ def main():
                 x1, x2, offset_flow = netG(x, mask)
                 inpainted_result = x2 * mask + x * (1. - mask)
 
-                vutils.save_image(inpainted_result, args.output, padding=0, normalize=True)
+                if config['image_shape'][-1] == 3: # If RGB
+                    vutils.save_image(inpainted_result, args.output, padding=0, normalize=True)
+                else:
+                    save_16bit_png(inpainted_result, args.output)
                 print("Saved the inpainted result to {}".format(args.output))
                 if args.flow:
-                    vutils.save_image(offset_flow, args.flow, padding=0, normalize=True)
+                    if config['image_shape'][-1] == 3: # If RGB
+                        vutils.save_image(offset_flow, args.flow, padding=0, normalize=True)
+                    else:
+                        save_16bit_png(offset_flow, args.flow)
                     print("Saved offset flow to {}".format(args.flow))
             else:
                 raise TypeError("{} is not an image file.".format)

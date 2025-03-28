@@ -3,7 +3,7 @@ import torch
 import yaml
 import numpy as np
 from PIL import Image
-
+import imageio.v3 as iio 
 import torch.nn.functional as F
 from torchvision import transforms
 
@@ -25,6 +25,23 @@ def load_16bit_grayscale(path, normalize=True):
     if normalize:
         tensor = tensor * 2. - 1.
     return tensor
+
+
+def save_16bit_png(tensor_img, output_path):
+    # Assume tensor_img shape is (1, C, H, W), and values are in [-1, 1] or [0, 1]
+    img = tensor_img.squeeze().detach().cpu()  # shape: (C, H, W)
+    if img.shape[0] == 3:  # RGB
+        img = img.permute(1, 2, 0)  # shape: (H, W, C)
+
+    # Rescale from [-1, 1] to [0, 1] if needed
+    if img.min() < 0:
+        img = (img + 1) / 2
+
+    # Clip and convert to 16-bit range
+    img = (img.clamp(0, 1) * 65535).to(torch.uint16).numpy()
+
+    # Save using imageio
+    iio.imwrite(output_path, img)
 
 
 def default_loader(path, input_dim=3):
@@ -180,7 +197,7 @@ def mask_image(x, bboxes, config):
     if x.is_cuda:
         mask = mask.cuda()
 
-    # Expand mask to match x's channel count  # Added byMARIANA
+    # Expand mask to match x's channel count  # Added by MARIANA
     if mask.size(1) != x.size(1):
         mask = mask.expand(-1, x.size(1), -1, -1)
 

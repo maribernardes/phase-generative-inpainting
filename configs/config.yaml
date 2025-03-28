@@ -8,7 +8,7 @@ batch_size: 32
 image_shape: [192, 192, 1]
 mask_shape: [50, 50]
 mask_batch_same: True
-max_delta_shape: [25, 25]
+max_delta_shape: [10, 10]  # [25, 25]
 margin: [0, 0]
 discounted_mask: True
 spatial_discounting_gamma: 0.9
